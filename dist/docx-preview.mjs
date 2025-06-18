@@ -2197,9 +2197,6 @@ class DocumentParser {
                 case "tblStyleRowBandSize":
                     table.rowBandSize = globalXmlParser.intAttr(c, "val");
                     break;
-                case "hidden":
-                    table.cssStyle["display"] = "none";
-                    break;
                 default:
                     return false;
             }
@@ -2250,12 +2247,6 @@ class DocumentParser {
                     break;
                 case "tblHeader":
                     row.isHeader = globalXmlParser.boolAttr(c, "val");
-                    break;
-                case "gridBefore":
-                    row.gridBefore = globalXmlParser.intAttr(c, "val");
-                    break;
-                case "gridAfter":
-                    row.gridAfter = globalXmlParser.intAttr(c, "val");
                     break;
                 default:
                     return false;
@@ -2646,44 +2637,12 @@ class values {
         return globalXmlParser.lengthAttr(c, "w");
     }
     static valueOfBorder(c) {
-        var type = values.parseBorderType(globalXmlParser.attr(c, "val"));
-        if (type == "none")
+        var type = globalXmlParser.attr(c, "val");
+        if (type == "nil")
             return "none";
         var color = xmlUtil.colorAttr(c, "color");
         var size = globalXmlParser.lengthAttr(c, "sz", LengthUsage.Border);
-        return `${size} ${type} ${color == "auto" ? autos.borderColor : color}`;
-    }
-    static parseBorderType(type) {
-        switch (type) {
-            case "single": return "solid";
-            case "dashDotStroked": return "solid";
-            case "dashed": return "dashed";
-            case "dashSmallGap": return "dashed";
-            case "dotDash": return "dotted";
-            case "dotDotDash": return "dotted";
-            case "dotted": return "dotted";
-            case "double": return "double";
-            case "doubleWave": return "double";
-            case "inset": return "inset";
-            case "nil": return "none";
-            case "none": return "none";
-            case "outset": return "outset";
-            case "thick": return "solid";
-            case "thickThinLargeGap": return "solid";
-            case "thickThinMediumGap": return "solid";
-            case "thickThinSmallGap": return "solid";
-            case "thinThickLargeGap": return "solid";
-            case "thinThickMediumGap": return "solid";
-            case "thinThickSmallGap": return "solid";
-            case "thinThickThinLargeGap": return "solid";
-            case "thinThickThinMediumGap": return "solid";
-            case "thinThickThinSmallGap": return "solid";
-            case "threeDEmboss": return "solid";
-            case "threeDEngrave": return "solid";
-            case "triple": return "double";
-            case "wave": return "solid";
-        }
-        return 'solid';
+        return `${size} solid ${color == "auto" ? autos.borderColor : color}`;
     }
     static valueOfTblLayout(c) {
         var type = globalXmlParser.attr(c, "val");
@@ -3643,21 +3602,11 @@ section.${c}>footer { z-index: 1; }
         return result;
     }
     renderTableRow(elem) {
-        let result = this.createElement("tr");
+        let result = this.renderContainer(elem, "tr");
         this.currentCellPosition.col = 0;
-        if (elem.gridBefore)
-            result.appendChild(this.renderTableCellPlaceholder(elem.gridBefore));
         this.renderClass(elem, result);
-        this.renderElements(elem.children, result);
         this.renderStyleValues(elem.cssStyle, result);
-        if (elem.gridAfter)
-            result.appendChild(this.renderTableCellPlaceholder(elem.gridAfter));
         this.currentCellPosition.row++;
-        return result;
-    }
-    renderTableCellPlaceholder(colSpan) {
-        const result = this.createElement("td", { colSpan });
-        result.style['border'] = 'none';
         return result;
     }
     renderTableCell(elem) {

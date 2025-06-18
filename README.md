@@ -1,110 +1,111 @@
-[![npm version](https://badge.fury.io/js/docx-preview.svg)](https://www.npmjs.com/package/docx-preview)
-[![Support Ukraine](https://img.shields.io/badge/Support-Ukraine-blue?style=flat&logo=adguard)](https://war.ukraine.ua/)
+# CSP-Compliant docx-preview Implementation
 
-# docxjs
-Docx rendering library
+This directory contains a Content Security Policy (CSP) compliant version of the docx-preview library that works without `unsafe-inline` styles.
 
-Demo - https://volodymyrbaydalka.github.io/docxjs/
+## Files
 
-Goal
-----
-Goal of this project is to render/convert DOCX document into HTML document with keeping HTML semantic as much as possible. 
-That means library is limited by HTML capabilities (for example Google Docs renders *.docx document on canvas as an image).
+### Core Files (located in `dist/` directory)
+- `dist/docx-preview.min.js` - Original docx-preview library (copied from node_modules)
+- `dist/docx-preview-csp.css` - CSP-compliant CSS classes for all previously inline styles
+- `dist/docx-csp-utils.js` - Utility functions for converting inline styles to CSS classes and custom properties
+- `dist/docx-preview-csp-wrapper.js` - JavaScript wrapper that patches the original library
 
-Installation
------
+### Problem Solved
+
+The original docx-preview library sets inline styles directly on DOM elements using patterns like:
+```javascript
+element.style.width = '100pt';
+element.style.textDecoration = 'underline';
 ```
-npm install docx-preview
-```
 
-Usage
------
+This violates CSP policies that don't allow `unsafe-inline` in the `style-src` directive.
+
+## Solution Overview
+
+### 1. CSS Classes and Custom Properties
+Instead of inline styles, we use:
+- **Predefined CSS classes** for common patterns (e.g., `.docx-tab-stop-underline`)
+- **CSS custom properties** for dynamic values (e.g., `--docx-width`)
+- **Utility classes** that read from custom properties (e.g., `.docx-width-custom`)
+
+### 2. Style Interception
+The wrapper intercepts all `element.style.property = value` assignments and converts them to:
+- CSS class additions
+- CSS custom property settings
+
+### 3. Dynamic Style Generation
+For complex styles, we dynamically create CSS rules in a `<style>` element, which is CSP-compliant as long as it doesn't use `eval()` or inline event handlers.
+
+## Usage
+
+Replace the original docx-preview script tags:
 ```html
-<!--lib uses jszip-->
-<script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
-<script src="docx-preview.min.js"></script>
-<script>
-    var docData = <document Blob>;
+<!-- OLD -->
+<script src="/js/docx-preview.min.js"></script>
 
-    docx.renderAsync(docData, document.getElementById("container"))
-        .then(x => console.log("docx: finished"));
-</script>
-<body>
-    ...
-    <div id="container"></div>
-    ...
-</body>
-```
-API
----
-```ts
-// renders document into specified element
-renderAsync(
-    document: Blob | ArrayBuffer | Uint8Array, // could be any type that supported by JSZip.loadAsync
-    bodyContainer: HTMLElement, //element to render document content,
-    styleContainer: HTMLElement, //element to render document styles, numbeings, fonts. If null, bodyContainer will be used.
-    options: {
-        className: string = "docx", //class name/prefix for default and document style classes
-        inWrapper: boolean = true, //enables rendering of wrapper around document content
-        hideWrapperOnPrint: boolean = false, //disable wrapper styles on print
-        ignoreWidth: boolean = false, //disables rendering width of page
-        ignoreHeight: boolean = false, //disables rendering height of page
-        ignoreFonts: boolean = false, //disables fonts rendering
-        breakPages: boolean = true, //enables page breaking on page breaks
-        ignoreLastRenderedPageBreak: boolean = true, //disables page breaking on lastRenderedPageBreak elements
-        experimental: boolean = false, //enables experimental features (tab stops calculation)
-        trimXmlDeclaration: boolean = true, //if true, xml declaration will be removed from xml documents before parsing
-        useBase64URL: boolean = false, //if true, images, fonts, etc. will be converted to base 64 URL, otherwise URL.createObjectURL is used
-        renderChanges: false, //enables experimental rendering of document changes (inserions/deletions)
-        renderHeaders: true, //enables headers rendering
-        renderFooters: true, //enables footers rendering
-        renderFootnotes: true, //enables footnotes rendering
-        renderEndnotes: true, //enables endnotes rendering
-        renderComments: false, //enables experimental comments rendering
-        renderAltChunks: true, //enables altChunks (html parts) rendering
-        debug: boolean = false, //enables additional logging
-    }): Promise<WordDocument>
-
-/// ==== experimental / internal API ===
-// this API could be used to modify document before rendering
-// renderAsync = parseAsync + renderDocument
-
-// parse document and return internal document object
-parseAsync(
-    document: Blob | ArrayBuffer | Uint8Array,
-    options: Options
-): Promise<WordDocument>
-
-// render internal document object into specified container
-renderDocument(
-    wordDocument: WordDocument,
-    bodyContainer: HTMLElement,
-    styleContainer: HTMLElement,
-    options: Options
-): Promise<void>
+<!-- NEW -->
+<script src="/js/docx-csp-utils.js"></script>
+<script src="/js/docx-preview-csp.min.js"></script>
+<script src="/js/docx-preview-csp-wrapper.js"></script>
 ```
 
-Thumbnails, TOC and etc.
-------
-Thumbnails is added only for example and it's not part of library. Library renders DOCX into HTML, so it can't be efficiently used for thumbnails. 
+Also include the CSS:
+```html
+<link rel="stylesheet" href="/js/docx-preview-csp.css">
+```
 
-Table of contents is built using the TOC fields and there is no efficient way to get table of contents at this point, since fields is not supported yet (http://officeopenxml.com/WPtableOfContents.php)
+## How It Works
 
-Breaks
-------
-Currently library does break pages:
-- if user/manual page break `<w:br w:type="page"/>` is inserted - when user insert page break
-- if application page break `<w:lastRenderedPageBreak/>` is inserted - could be inserted by editor application like MS word (`ignoreLastRenderedPageBreak` should be set to false)
-- if page settings for paragraph is changed - ex: user change settings from portrait to landscape page
+1. **Load Order**: 
+   - CSP utilities load first
+   - Original docx-preview loads second
+   - Wrapper patches the library third
 
-Realtime page breaking is not implemented because it's requires re-calculation of sizes on each insertion and that could affect performance a lot. 
+2. **Style Interception**: 
+   - Wrapper creates a Proxy around `element.style`
+   - All style assignments are intercepted
+   - Converted to CSS classes and custom properties
 
-If page breaking is crutual for you, I would recommend:
-- try to insert manual break point as much as you could
-- try use editors like MS Word, that inserts `<w:lastRenderedPageBreak/>` break points
+3. **CSS Custom Properties**:
+   ```javascript
+   // Instead of: element.style.width = '100pt'
+   element.style.setProperty('--docx-width', '100pt');
+   element.classList.add('docx-width-custom');
+   ```
 
-NOTE: by default `ignoreLastRenderedPageBreak` is set to `true`. You may need to set it to `false`, to make library break by `<w:lastRenderedPageBreak/>` break points
+4. **CSS Classes**:
+   ```css
+   .docx-width-custom {
+     width: var(--docx-width);
+   }
+   ```
 
-Status and stability
-------
-So far I can't come up with final approach of parsing documents and final structure of API. Only **renderAsync** function is stable and definition shouldn't be changed in future. Inner implementation of parsing and rendering may be changed at any point of time.
+## Benefits
+
+- ✅ **CSP Compliant**: No `unsafe-inline` required
+- ✅ **Drop-in Replacement**: Same API as original library
+- ✅ **Performance**: CSS classes are faster than inline styles
+- ✅ **Maintainable**: Styles are centralized in CSS files
+- ✅ **Debuggable**: CSS classes are easier to inspect
+
+## Server Routes
+
+The following routes serve the CSP-compliant files from the `dist/` directory:
+- `/js/docx-preview-csp.min.js` - Main library (serves `dist/docx-preview.min.js`)
+- `/js/docx-csp-utils.js` - Utility functions (serves `dist/docx-csp-utils.js`)
+- `/js/docx-preview-csp-wrapper.js` - Wrapper script (serves `dist/docx-preview-csp-wrapper.js`)
+- `/js/docx-preview-csp.css` - CSS styles (serves `dist/docx-preview-csp.css`)
+
+## Browser Support
+
+Compatible with all modern browsers that support:
+- CSS Custom Properties (CSS Variables)
+- Proxy objects
+- ES6 features
+
+## Notes
+
+- The original `docx-preview.min.js` file is used as-is
+- All modifications are applied via the wrapper
+- Fallback behavior maintains original functionality
+- No changes to the docx-preview API

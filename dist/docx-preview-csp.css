@@ -1,0 +1,98 @@
+/* 
+ * CSP-Compliant CSS for docx-preview
+ * This file contains all styles that were previously inline
+ */
+
+/* Tab stop styles */
+.docx-tab-stop {
+    display: inline;
+}
+
+.docx-tab-stop-inherit {
+    text-decoration: inherit;
+}
+
+.docx-tab-stop-dot,
+.docx-tab-stop-middleDot {
+    text-decoration: underline;
+    text-decoration-style: dotted;
+}
+
+.docx-tab-stop-hyphen,
+.docx-tab-stop-heavy,
+.docx-tab-stop-underscore {
+    text-decoration: underline;
+}
+
+/* Column layout styles */
+.docx-column-separator {
+    column-rule: 1px solid black;
+}
+
+/* Drawing/Image styles */
+.docx-drawing {
+    display: inline-block;
+    position: relative;
+    text-indent: 0px;
+}
+
+/* Measurement utilities */
+.docx-width-100pt {
+    width: 100pt;
+}
+
+/* Base classes for dynamic styles - these will be populated by CSS custom properties */
+.docx-width-custom {
+    width: var(--docx-width);
+}
+
+.docx-word-spacing-custom {
+    word-spacing: var(--docx-word-spacing);
+}
+
+.docx-padding-custom {
+    padding-left: var(--docx-padding-left, inherit);
+    padding-right: var(--docx-padding-right, inherit);
+    padding-top: var(--docx-padding-top, inherit);
+    padding-bottom: var(--docx-padding-bottom, inherit);
+}
+
+.docx-min-height-custom {
+    min-height: var(--docx-min-height);
+}
+
+.docx-columns-custom {
+    column-count: var(--docx-column-count, inherit);
+    column-gap: var(--docx-column-gap, inherit);
+    column-rule: var(--docx-column-rule, inherit);
+}
+
+.docx-margin-custom {
+    margin-top: var(--docx-margin-top, inherit);
+    margin-bottom: var(--docx-margin-bottom, inherit);
+}
+
+.docx-display-custom {
+    display: var(--docx-display);
+}
+
+.docx-position-custom {
+    position: var(--docx-position);
+}
+
+.docx-text-indent-custom {
+    text-indent: var(--docx-text-indent);
+}
+
+.docx-tab-stop-underline {
+    text-decoration: underline;
+}
+
+.docx-tab-stop-dotted {
+    text-decoration-style: dotted;
+}
+
+.docx-custom-property {
+    /* Fallback for any custom properties not covered above - uses inherited styles */
+    all: inherit;
+}
